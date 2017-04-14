@@ -26,12 +26,12 @@ namespace Tsinghua.Kinect.RemotePoint
         /// <summary>
         /// Width of output drawing
         /// </summary>
-        private const int RenderWidth = 640;
+        private int RenderWidth;
 
         /// <summary>
         /// Height of our output drawing
         /// </summary>
-        private const int RenderHeight = 480;
+        private int RenderHeight;
 
         /// <summary>
         /// Active Kinect sensor
@@ -55,6 +55,8 @@ namespace Tsinghua.Kinect.RemotePoint
         /// Intermediate storage for the color image background
         /// </summary>
         private WriteableBitmap colorBitmap;
+
+        private WriteableBitmap blankColorBitmap;
 
         /// <summary>
         /// Intermediate storage for the color data received from the camera
@@ -146,12 +148,23 @@ namespace Tsinghua.Kinect.RemotePoint
             if (this.sensor != null)
             {
                 // Turn on the skeleton, color, depth stream to receive skeleton frames
-                this.sensor.SkeletonStream.Enable();
+                TransformSmoothParameters smoothingParam = new TransformSmoothParameters();
+                {
+                    smoothingParam.Smoothing = 0.5f;
+                    smoothingParam.Correction = 0.1f;
+                    smoothingParam.Prediction = 0.5f;
+                    smoothingParam.JitterRadius = 0.1f;
+                    smoothingParam.MaxDeviationRadius = 0.1f;
+                };
+
+                this.sensor.SkeletonStream.Enable(smoothingParam);
                 this.sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Seated;
                 this.checkBoxSeatedMode.SetCurrentValue(CheckBox.IsCheckedProperty, true);
                 this.sensor.ColorStream.Enable(ColorImageFormat.RgbResolution640x480Fps30);
                 this.sensor.DepthStream.Enable(DepthImageFormat.Resolution640x480Fps30);
 
+                this.RenderHeight = 480;
+                this.RenderWidth = 640;
                 this.depthImageFormat = this.sensor.DepthStream.Format;
                 this.colorImageFormat = this.sensor.ColorStream.Format;
 
@@ -164,14 +177,14 @@ namespace Tsinghua.Kinect.RemotePoint
                 
                 // Display the drawing using our image control
                 Image.Source = new DrawingImage(this.drawingGroup);
-                OutputImage.Source = new DrawingImage(this.outputDrawingGroup);
-
                 // Allocate space to put the pixels we'll receive
                 this.colorImage = new byte[this.sensor.ColorStream.FramePixelDataLength];
-
                 // This is the bitmap we'll display on-screen
                 this.colorBitmap = new WriteableBitmap(this.sensor.ColorStream.FrameWidth, this.sensor.ColorStream.FrameHeight, 96.0, 96.0, PixelFormats.Bgr32, null);
-                
+                this.blankColorBitmap = new WriteableBitmap(this.sensor.ColorStream.FrameWidth, this.sensor.ColorStream.FrameHeight, 96.0, 96.0, PixelFormats.Bgr32, null);
+
+                OutputImage.Source = new DrawingImage(this.outputDrawingGroup);
+
                 //this.SetCameraMatrix();
 
                 // Add an event handler to be called whenever there is new all frame data
@@ -266,6 +279,7 @@ namespace Tsinghua.Kinect.RemotePoint
                 this.colorBitmap.PixelWidth * sizeof(int),
                 0);
         }
+
         /*
         /// <summary>
         /// Event handler for Kinect sensor's DepthFrameReady event
@@ -275,6 +289,7 @@ namespace Tsinghua.Kinect.RemotePoint
             depthImageFrame.CopyPixelDataTo(this.depthImage);
         }
         */
+
         /// <summary>
         /// Event handler for Kinect sensor's SkeletonFrameReady event
         /// </summary>
@@ -287,6 +302,7 @@ namespace Tsinghua.Kinect.RemotePoint
                 this.players = new Player[skeletonFrame.SkeletonArrayLength];
                 for (int i = 0; i < this.skeletonData.Length; i++)
                 {
+                    this.players[i] = new Player();
                     this.players[i].sensor = this.sensor;
                 }
             }
@@ -315,7 +331,7 @@ namespace Tsinghua.Kinect.RemotePoint
                 {
                     player.DrawSkeleton(dc);
 
-                    if (player.headAndHandTracked == true)
+                    if (player.headAndHandValid == true)
                     {
                         player.DrawSight(dc);
                     }
@@ -353,15 +369,15 @@ namespace Tsinghua.Kinect.RemotePoint
         /// <summary>
         /// Map point from camera coordinates to room coordinates
         /// </summary>
-        private SpacePoint CameraCoordinatesToRoomCoordinates(SpacePoint point)
+        private Matrix CameraCoordinatesToRoomCoordinates(Matrix point)
         {
-            return TransMatrix * point;
+            return new Matrix(3, 1);//TransMatrix * point;
         }
 
         /// <summary>
         /// Fine the intersection on the room's walls
         /// </summary>
-        private Point FindTheInterSection(SpacePoint start, SpacePoint end)
+        private Point FindTheIntersection(Matrix start, Matrix end)
         {
             /*
              DepthSpaceVector dir = new DepthSpaceVector(endPoint.X - startPoint.X, endPoint.Y - startPoint.Y, endPoint.Z - startPoint.Z);
@@ -398,7 +414,7 @@ namespace Tsinghua.Kinect.RemotePoint
                 this.RenderClippedEdges(new Point(X + dir.X / length, Y + dir.Y / length), drawingContext);
             }
             */
-            return new Point(0, 0);
+            return new Point(22, 22);
         }
 
         /// <summary>
@@ -408,13 +424,15 @@ namespace Tsinghua.Kinect.RemotePoint
         {
             using (DrawingContext dc = this.outputDrawingGroup.Open())
             {
+                dc.DrawImage(blankColorBitmap, new Rect(0.0, 0.0, RenderWidth, RenderHeight));
+
                 foreach (Player player in this.players)
                 {
-                    if (player.headAndHandTracked == true)
+                    if (player.headAndHandValid == true)
                     {
-                        Point showPoint = 
-                            FindTheInterSection(CameraCoordinatesToRoomCoordinates(player.startPointInCameraCoordinates), 
-                                                CameraCoordinatesToRoomCoordinates(player.endPointInCameraCoordinates));
+                        Point showPoint = player.endPointInColorFrame;
+                            //FindTheIntersection(CameraCoordinatesToRoomCoordinates(player.startPointInCameraCoordinates), 
+                            //                    CameraCoordinatesToRoomCoordinates(player.endPointInCameraCoordinates));
 
                         if (showPoint.X >= 0 && showPoint.X < RenderHeight && showPoint.Y >= 0 && showPoint.Y < RenderHeight)
                         {
@@ -488,6 +506,5 @@ namespace Tsinghua.Kinect.RemotePoint
                 }
             }
         }
-
     }
 }

@@ -36,3 +36,16 @@ C:\Users\CQB\Desktop\RemotePoint\RemotePoint-WPF\obj\x64\Debug\RemotePoint-WPF_M
 C:\Users\CQB\Desktop\RemotePoint\RemotePoint-WPF\obj\x64\Debug\RemotePoint-WPF.g.resources
 C:\Users\CQB\Desktop\RemotePoint\RemotePoint-WPF\obj\x64\Debug\Tsinghua.Kinect.RemotePoint.Properties.Resources.resources
 C:\Users\CQB\Desktop\RemotePoint\RemotePoint-WPF\obj\x64\Debug\RemotePoint-WPF.csproj.GenerateResource.Cache
+\\Mac\Home\Desktop\RemotePoint\RemotePoint-WPF\obj\x64\Debug\RemotePoint-WPF.exe
+\\Mac\Home\Desktop\RemotePoint\RemotePoint-WPF\obj\x64\Debug\RemotePoint-WPF.csprojResolveAssemblyReference.cache
+\\Mac\Home\Desktop\RemotePoint\RemotePoint-WPF\obj\x64\Debug\MainWindow.baml
+\\Mac\Home\Desktop\RemotePoint\RemotePoint-WPF\obj\x64\Debug\MainWindow.g.cs
+\\Mac\Home\Desktop\RemotePoint\RemotePoint-WPF\obj\x64\Debug\App.g.cs
+\\Mac\Home\Desktop\RemotePoint\RemotePoint-WPF\obj\x64\Debug\RemotePoint-WPF_Content.g.cs
+\\Mac\Home\Desktop\RemotePoint\RemotePoint-WPF\obj\x64\Debug\RemotePoint-WPF_MarkupCompile.cache
+\\Mac\Home\Desktop\RemotePoint\RemotePoint-WPF\obj\x64\Debug\RemotePoint-WPF.g.resources
+\\Mac\Home\Desktop\RemotePoint\RemotePoint-WPF\obj\x64\Debug\Tsinghua.Kinect.RemotePoint.Properties.Resources.resources
+\\Mac\Home\Desktop\RemotePoint\RemotePoint-WPF\obj\x64\Debug\RemotePoint-WPF.csproj.GenerateResource.Cache
+\\Mac\Home\Desktop\RemotePoint\RemotePoint-WPF\bin\x64\Debug\RemotePoint-WPF.exe
+\\Mac\Home\Desktop\RemotePoint\RemotePoint-WPF\bin\x64\Debug\RemotePoint-WPF.pdb
+\\Mac\Home\Desktop\RemotePoint\RemotePoint-WPF\obj\x64\Debug\RemotePoint-WPF.pdb

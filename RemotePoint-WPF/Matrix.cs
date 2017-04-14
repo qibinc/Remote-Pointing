@@ -24,16 +24,6 @@ namespace Tsinghua.Kinect.RemotePoint
             }
         }
 
-        public Matrix(SpacePoint point)
-        {
-            this.row = 3;
-            this.column = 1;
-            value = new double[3];
-            value[0] = point.X;
-            value[1] = point.Y;
-            value[2] = point.Z;
-        }
-
         public Matrix(Matrix mat)
         {
             this.row = mat.row;
