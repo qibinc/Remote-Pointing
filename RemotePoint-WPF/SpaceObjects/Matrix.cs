@@ -8,7 +8,7 @@ namespace Tsinghua.Kinect.RemotePoint
 {
     class Matrix
     {
-        private double[] value;
+        protected double[] value;
 
         public int row, column;
 
@@ -32,14 +32,33 @@ namespace Tsinghua.Kinect.RemotePoint
             mat.value.CopyTo(this.value, 0);
         }
 
-        public Matrix(SpacePoint point)
+        //public static implicit operator SpacePoint(Matrix mat)
+        //{
+        //    return new SpacePoint(mat);
+        //}
+
+        public static Matrix operator +(Matrix mat1, Matrix mat2)
         {
-            this.row = 3;
-            this.column = 1;
-            value = new double[3];
-            value[0] = point.X;
-            value[1] = point.Y;
-            value[2] = point.Z;
+            if (mat1.row != mat2.row || mat1.column != mat2.column)
+                return null;
+
+            Matrix newMat = new Matrix(mat1.row, mat1.column);
+            for (int i = 0; i < mat1.row; i++)
+                for (int j = 0; j < mat1.column; j++)
+                    newMat.value[i * mat1.column + j] = mat1.value[i * mat1.column + j] + mat2.value[i * mat1.column + j];
+            return newMat;
+        }
+
+        public static Matrix operator -(Matrix mat1, Matrix mat2)
+        {
+            if (mat1.row != mat2.row || mat1.column != mat2.column)
+                return null;
+
+            Matrix newMat = new Matrix(mat1.row, mat1.column);
+            for (int i = 0; i < mat1.row; i++)
+                for (int j = 0; j < mat1.column; j++)
+                    newMat.value[i * mat1.column + j] = mat1.value[i * mat1.column + j] - mat2.value[i * mat1.column + j];
+            return newMat;
         }
 
         public static Matrix operator *(Matrix mat1, Matrix mat2)

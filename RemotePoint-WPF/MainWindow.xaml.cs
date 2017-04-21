@@ -17,7 +17,7 @@ namespace Tsinghua.Kinect.RemotePoint
     using Microsoft.Kinect;
     using Point = System.Windows.Point;
     using Rect = System.Windows.Rect;
-    
+
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
@@ -71,15 +71,7 @@ namespace Tsinghua.Kinect.RemotePoint
         /// Thickness of clip edge rectangles
         /// </summary>
         private readonly double ClipBoundsThickness = 10;
-
-        private const double MMInPixel = 1000f / 5.2f;
-
-        private const double focalLengthInPixel = 531.15f;
-        
-        private Matrix CameraMatrixInverse = new Matrix(3, 3);
-
-        private Matrix CameraMatrix = new Matrix(3, 3);
-        
+                
         private Skeleton[] skeletonData;
 
         private Player[] players;
@@ -154,7 +146,9 @@ namespace Tsinghua.Kinect.RemotePoint
 
                 OutputImage.Source = new DrawingImage(this.outputDrawingGroup);
 
-                this.SetCameraMatrix();
+                RoomSetting.SetCameraMatrix();
+
+                RoomSetting.SetPlanes();
 
                 // Add an event handler to be called whenever there is new all frame data
                 this.sensor.AllFramesReady += this.OnAllFramesReady;
@@ -249,16 +243,6 @@ namespace Tsinghua.Kinect.RemotePoint
                 0);
         }
 
-        /*
-        /// <summary>
-        /// Event handler for Kinect sensor's DepthFrameReady event
-        /// </summary>
-        private void HandleDepthImage(DepthImageFrame depthImageFrame)
-        {
-            depthImageFrame.CopyPixelDataTo(this.depthImage);
-        }
-        */
-
         /// <summary>
         /// Event handler for Kinect sensor's SkeletonFrameReady event
         /// </summary>
@@ -310,98 +294,6 @@ namespace Tsinghua.Kinect.RemotePoint
             //this.InvalidateVisual();
         }
         
-        private void SetCameraMatrix()
-        {
-            this.CameraMatrix.Set(0, 0, focalLengthInPixel); this.CameraMatrix.Set(0, 1, 0); this.CameraMatrix.Set(0, 2, RenderWidth / 2);
-            this.CameraMatrix.Set(1, 0, 0); this.CameraMatrix.Set(1, 1, focalLengthInPixel); this.CameraMatrix.Set(1, 2, RenderHeight / 2);
-            this.CameraMatrix.Set(2, 0, 0); this.CameraMatrix.Set(2, 1, 0); this.CameraMatrix.Set(2, 2, 1);
-
-            this.CameraMatrixInverse.Set(0, 0, 0.00188271); this.CameraMatrixInverse.Set(0, 1, 0); this.CameraMatrixInverse.Set(0, 2, -0.60246635);
-            this.CameraMatrixInverse.Set(1, 0, 0); this.CameraMatrixInverse.Set(1, 1, 0.00188271); this.CameraMatrixInverse.Set(1, 2, -0.45184976);
-            this.CameraMatrixInverse.Set(2, 0, 0); this.CameraMatrixInverse.Set(2, 1, 0); this.CameraMatrixInverse.Set(2, 2, 1);
-        }
-        
-        /// <summary>
-        /// Map point from camera coordinates to room coordinates
-        /// </summary>
-        private SpacePoint CameraPointToRoomPoint(SpacePoint cameraPoint)
-        {            
-            double depth = cameraPoint.Z;
-            cameraPoint.Z = 1;
-
-            Matrix cameraCoordinatesVector = CameraMatrixInverse * (depth * new Matrix(cameraPoint));
-
-            SpacePoint cameraCoordinatesPoint = new SpacePoint(cameraCoordinatesVector);
-            
-            //    暂时设房间坐标系为深度摄像头坐标系，右手系，单位 MM
-            SpacePoint roomPoint = cameraCoordinatesPoint;
-            //
-            //    对cameraCoordinatesPoint进行rotate得到roompoint
-            //
-            System.Diagnostics.Debug.WriteLine(roomPoint.X.ToString() + " " + roomPoint.Y.ToString() + " " + roomPoint.Z.ToString());
-            return roomPoint;
-        }
-
-        /// <summary>
-        /// Map point from camera coordinates to room coordinates
-        /// </summary>
-        private SpacePoint RoomPointToCameraPoint(SpacePoint roomPoint)
-        {
-            Matrix cameraCoordinatesVector = new Matrix(roomPoint);
-            //
-            //  对roomPoint进行rotate得到cameraCoordinatesMatrix
-            //
-
-            double depth = cameraCoordinatesVector.Get(2, 0);
-
-            SpacePoint cameraPoint = new SpacePoint((1 / depth) * (CameraMatrix * cameraCoordinatesVector));
-            return cameraPoint;
-        }
-
-        /// <summary>
-        /// Fine the intersection on the room's walls
-        /// </summary>
-        private SpacePoint FindTheIntersection(SpacePoint start, SpacePoint end)
-        {
-            /*
-             DepthSpaceVector dir = new DepthSpaceVector(endPoint.X - startPoint.X, endPoint.Y - startPoint.Y, endPoint.Z - startPoint.Z);
-            
-            double length = System.Math.Sqrt(dir.X * dir.X + dir.Y * dir.Y + dir.Z * dir.Z);
-
-            double X = endPoint.X, Y = endPoint.Y, Z = endPoint.Z;
-
-            if (!((int)X >= 0 && (int)X < RenderWidth && (int)Y >= 0 && (int)Y < RenderHeight))
-            {
-                return;
-            }
-
-            //drawingContext.DrawEllipse(Brushes.LightGoldenrodYellow, null, new Point(X, Y), HandThickness, HandThickness);
-
-            while ((int)(X + dir.X / length) >= 0 && (int)(X + dir.X / length) < RenderWidth && (int)(Y + dir.Y / length) >= 0 && (int)(Y + dir.Y / length) < RenderHeight)
-            {
-                X += dir.X / length;
-                Y += dir.Y / length;
-                Z += dir.Z / length;
-                //if (wallDepthImage[RenderWidth * (int)Y + (int)X] < Z)
-                if (2500 < Z)
-                    break;
-            }
-
-            if ((int)(X + dir.X / length) >= 0 && (int)(X + dir.X / length) < RenderWidth && (int)(Y + dir.Y / length) >= 0 && (int)(Y + dir.Y / length) < RenderHeight)
-            {
-                drawingContext.DrawEllipse(Brushes.LightGoldenrodYellow, null, new Point(X, Y), HandThickness, HandThickness);
-
-                //drawingContext.DrawEllipse(Brushes.LightGoldenrodYellow, null, new Point(RenderWidth - 1 - wallColorCoordinates[RenderWidth * (int)Y + RenderWidth - 1 - (int)X] % 640, wallColorCoordinates[RenderWidth * (int)Y + RenderWidth - 1 - (int)X] / 640), HandThickness, HandThickness);
-            }
-            else
-            {
-                this.RenderClippedEdges(new Point(X + dir.X / length, Y + dir.Y / length), drawingContext);
-            }
-            */
-            return end;
-        }
-
-
         /*
         private const int DMAFilterN = 3;
         private Filter DMAFilterX = new DMAFilter(DMAFilterN);
@@ -423,7 +315,7 @@ namespace Tsinghua.Kinect.RemotePoint
                 foreach (Player player in this.players)
                 {
                     if (player.headAndHandValid == true)
-                    {                        
+                    {
                         /*
                         DMAFilterX.SetValue(player.endPointInColorFrame.X);
                         DMAFilterY.SetValue(player.endPointInColorFrame.Y);
@@ -434,8 +326,12 @@ namespace Tsinghua.Kinect.RemotePoint
                         Point MedianPoint = new Point(MedianFilterX.GetValue(), MedianFilterY.GetValue());
                         */
 
-                        SpacePoint intersection = FindTheIntersection(CameraPointToRoomPoint(player.startPointInCameraCoordinates),
-                                                                      CameraPointToRoomPoint(player.endPointInCameraCoordinates));
+                        SpacePoint intersection = RoomSetting.FindTheIntersection(RoomSetting.CameraPointToRoomPoint(player.startPointInCameraCoordinates),
+                                                                      RoomSetting.CameraPointToRoomPoint(player.endPointInCameraCoordinates));
+                        
+                        //  暂时显示
+                        Point showPoint = new Point((2 - intersection.X) / 4 * 640, intersection.Y / 4 * 480);
+                        
                         /*
                         if (showPoint.X >= 0 && showPoint.X < RenderHeight && showPoint.Y >= 0 && showPoint.Y < RenderHeight)
                         {

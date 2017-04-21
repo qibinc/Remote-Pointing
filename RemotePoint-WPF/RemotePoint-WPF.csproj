@@ -80,7 +80,9 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Filters\PointFiltering.cs" />
-    <Compile Include="Matrix\SpacePoint.cs" />
+    <Compile Include="RoomSetting.cs" />
+    <Compile Include="SpaceObjects\SpacePoint.cs" />
+    <Compile Include="SpaceObjects\Plate.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -99,7 +101,7 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Matrix\Matrix.cs" />
+    <Compile Include="SpaceObjects\Matrix.cs" />
     <Compile Include="Painter.cs" />
     <Compile Include="Player.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
