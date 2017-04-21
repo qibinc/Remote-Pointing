@@ -3,16 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
-//using System.Diagnostics;
 using System.Windows;
 using System.Windows.Media;
-//using System.Windows.Controls;
 using Microsoft.Kinect;
+using MyFilter = Tsinghua.Kinect.RemotePoint.DMAFilter;
 
 namespace Tsinghua.Kinect.RemotePoint
 {
     class Player
     {
+        private const int FilterN = 3;
+
         public Skeleton skeleton;
 
         public KinectSensor _sensor;
@@ -34,51 +35,64 @@ namespace Tsinghua.Kinect.RemotePoint
 
         public bool headAndHandValid = false;
 
-        private Point startPointInColorFrame;
-
-        public Point endPointInColorFrame;
-
-        public Matrix startPointInCameraCoordinates;
-
-        public Matrix endPointInCameraCoordinates;
-
-        private Matrix ScreenPointToCameraPoint(Point point)
+        private FramePointFiltering _startFramePointFiltering = new FramePointFiltering(new MyFilter(FilterN), new MyFilter(FilterN));
+        private Point startPointInColorFrame
         {
-
-            return new Matrix(3, 1);
-            /*
-            //  Using two images, do the transformation:
-            //  Camera1 coordinates -> real world coordinates -> Camera2 Coordinates
-            DepthSpacePoint TransformCoordinatesFromLeftToRightImage(DepthSpacePoint point, int k)
+            get
             {
-                double depth = point.Z * MMInPixel;
-                Matrix leftFramePoint = new Matrix(point);
-                leftFramePoint.Set(3, 1, 1);
-
-                //if (k == 1)
-                //    System.Console.WriteLine(Convert.ToString(leftFramePoint.Get(1, 1)) + " " + Convert.ToString(point.Y));
-                //  left camera coordinate -> left real world coordinate
-                Matrix leftWorldPoint = CameraMatrixInverse * (depth * leftFramePoint);
-                //if (k == 1)
-                //    System.Console.WriteLine(Convert.ToString((int) leftWorldPoint.Get(1, 1)/1000)  + " " + Convert.ToString((int)leftWorldPoint.Get(2, 1) / 1000) + " " + Convert.ToString((int)leftWorldPoint.Get(3, 1)/1000));
-
-                //  left real world coordinate -> right real world coordiante
-                Matrix rightWorldPoint = new Matrix(leftWorldPoint);
-                //rightWorldPoint.Set(1, 1, -rightWorldPoint.Get(1, 1));
-                rightWorldPoint.Set(3, 1, -rightWorldPoint.Get(3, 1) + 3200 * MMInPixel);
-
-                //  right real world coordinate -> right camera coordinate
-                double newdepth = rightWorldPoint.Get(3, 1);
-                Matrix rightFramePoint = CameraMatrix * (1 / newdepth * rightWorldPoint);
-
-                DepthSpacePoint newpoint = new DepthSpacePoint();
-                newpoint.X = (int)rightFramePoint.Get(1, 1);
-                newpoint.Y = (int)rightFramePoint.Get(2, 1);
-                newpoint.Z = (int)(newdepth / MMInPixel);
-
-                return newpoint;
+                return _startFramePointFiltering.GetValue();
             }
-            */
+            set
+            {
+                _startFramePointFiltering.SetValue(value);
+            }
+        }
+
+        private FramePointFiltering _endFramePointFiltering = new FramePointFiltering(new MyFilter(FilterN), new MyFilter(FilterN));
+        private Point endPointInColorFrame
+        {
+            get
+            {
+                return _endFramePointFiltering.GetValue();
+            }
+            set
+            {
+                _endFramePointFiltering.SetValue(value);
+            }
+        }
+
+        private PointFiltering _startPointFiltering = new PointFiltering(new MyFilter(FilterN), new MyFilter(FilterN), new MyFilter(FilterN));
+        public SpacePoint startPointInCameraCoordinates
+        {
+            get
+            {
+                return _startPointFiltering.GetValue();
+            }
+            set
+            {
+                _startPointFiltering.SetValue(value);
+            }
+        }
+
+        private PointFiltering _endPointFiltering = new PointFiltering(new MyFilter(FilterN), new MyFilter(FilterN), new MyFilter(FilterN));
+        public SpacePoint endPointInCameraCoordinates
+        {
+            get
+            {
+                return _endPointFiltering.GetValue();
+            }
+            set
+            {
+                _endPointFiltering.SetValue(value);
+            }
+        }
+
+        private SpacePoint SkeletonPointToCameraPoint(SkeletonPoint point)
+        {
+            DepthImagePoint depthPoint = 
+                this.sensor.CoordinateMapper.MapSkeletonPointToDepthPoint(point, this.sensor.DepthStream.Format);
+
+            return new SpacePoint(640 - depthPoint.X, depthPoint.Y, depthPoint.Depth);
         }
 
         /// <summary>
@@ -104,9 +118,9 @@ namespace Tsinghua.Kinect.RemotePoint
 
             this.headAndHandValid = true;
             this.startPointInColorFrame = this.painter.SkeletonPointToScreen(skeleton.Joints[JointType.Head].Position);
-            this.startPointInCameraCoordinates = ScreenPointToCameraPoint(this.startPointInColorFrame);
+            this.startPointInCameraCoordinates = SkeletonPointToCameraPoint(skeleton.Joints[JointType.Head].Position);
             this.endPointInColorFrame = this.painter.SkeletonPointToScreen(skeleton.Joints[JointType.HandRight].Position);
-            this.endPointInCameraCoordinates = ScreenPointToCameraPoint(this.endPointInColorFrame);
+            this.endPointInCameraCoordinates = SkeletonPointToCameraPoint(skeleton.Joints[JointType.HandRight].Position);
         }
 
         /// <summary>

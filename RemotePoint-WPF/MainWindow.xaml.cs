@@ -72,50 +72,17 @@ namespace Tsinghua.Kinect.RemotePoint
         /// </summary>
         private readonly double ClipBoundsThickness = 10;
 
-        /*
         private const double MMInPixel = 1000f / 5.2f;
 
-        private const double focalLengthInPixel = 2.9 * MMInPixel;
+        private const double focalLengthInPixel = 531.15f;
         
-
         private Matrix CameraMatrixInverse = new Matrix(3, 3);
 
         private Matrix CameraMatrix = new Matrix(3, 3);
-        */
-
-        //private DepthSpacePoint OutPoint = new DepthSpacePoint(-1, -1, -1);
-
-        //private short[] depthImage;
         
         private Skeleton[] skeletonData;
 
         private Player[] players;
-
-        /*
-        private struct DepthSpacePoint
-        {
-            public int X, Y, Z;
-            public DepthSpacePoint(int X, int Y, int Z)
-            {
-                this.X = X;
-                this.Y = Y;
-                this.Z = Z;
-            }
-        }
-
-        private struct DepthSpaceVector
-        {
-            public int X, Y, Z;
-            public DepthSpaceVector(int X, int Y, int Z)
-            {
-                this.X = X;
-                this.Y = Y;
-                this.Z = Z;
-            }
-        }
-
-        private DepthSpacePoint[] MapColorPointToDepthSpacePoint;
-        */
 
         /// <summary>
         /// Initializes a new instance of the MainWindow class.
@@ -147,6 +114,7 @@ namespace Tsinghua.Kinect.RemotePoint
 
             if (this.sensor != null)
             {
+                /*
                 // Turn on the skeleton, color, depth stream to receive skeleton frames
                 TransformSmoothParameters smoothingParam = new TransformSmoothParameters();
                 {
@@ -156,8 +124,9 @@ namespace Tsinghua.Kinect.RemotePoint
                     smoothingParam.JitterRadius = 0.1f;
                     smoothingParam.MaxDeviationRadius = 0.1f;
                 };
-
                 this.sensor.SkeletonStream.Enable(smoothingParam);
+                */
+                this.sensor.SkeletonStream.Enable();
                 this.sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Seated;
                 this.checkBoxSeatedMode.SetCurrentValue(CheckBox.IsCheckedProperty, true);
                 this.sensor.ColorStream.Enable(ColorImageFormat.RgbResolution640x480Fps30);
@@ -185,7 +154,7 @@ namespace Tsinghua.Kinect.RemotePoint
 
                 OutputImage.Source = new DrawingImage(this.outputDrawingGroup);
 
-                //this.SetCameraMatrix();
+                this.SetCameraMatrix();
 
                 // Add an event handler to be called whenever there is new all frame data
                 this.sensor.AllFramesReady += this.OnAllFramesReady;
@@ -340,44 +309,59 @@ namespace Tsinghua.Kinect.RemotePoint
 
             //this.InvalidateVisual();
         }
-
-        /*
+        
         private void SetCameraMatrix()
         {
-            this.CameraMatrix.Set(1, 1, focalLengthInPixel);
-            this.CameraMatrix.Set(1, 2, 0);
-            this.CameraMatrix.Set(1, 3, 320);
-            this.CameraMatrix.Set(2, 1, 0);
-            this.CameraMatrix.Set(2, 2, focalLengthInPixel);
-            this.CameraMatrix.Set(2, 3, 240);
-            this.CameraMatrix.Set(3, 1, 0);
-            this.CameraMatrix.Set(3, 2, 0);
-            this.CameraMatrix.Set(3, 3, 1);
+            this.CameraMatrix.Set(0, 0, focalLengthInPixel); this.CameraMatrix.Set(0, 1, 0); this.CameraMatrix.Set(0, 2, RenderWidth / 2);
+            this.CameraMatrix.Set(1, 0, 0); this.CameraMatrix.Set(1, 1, focalLengthInPixel); this.CameraMatrix.Set(1, 2, RenderHeight / 2);
+            this.CameraMatrix.Set(2, 0, 0); this.CameraMatrix.Set(2, 1, 0); this.CameraMatrix.Set(2, 2, 1);
 
-            this.CameraMatrixInverse.Set(1, 1, 0.0017931);
-            this.CameraMatrixInverse.Set(1, 2, 0);
-            this.CameraMatrixInverse.Set(1, 3, -0.573793);
-            this.CameraMatrixInverse.Set(2, 1, 0);
-            this.CameraMatrixInverse.Set(2, 2, 0.0017931);
-            this.CameraMatrixInverse.Set(2, 3, -0.430345);
-            this.CameraMatrixInverse.Set(3, 1, 0);
-            this.CameraMatrixInverse.Set(3, 2, 0);
-            this.CameraMatrixInverse.Set(3, 3, 1);
+            this.CameraMatrixInverse.Set(0, 0, 0.00188271); this.CameraMatrixInverse.Set(0, 1, 0); this.CameraMatrixInverse.Set(0, 2, -0.60246635);
+            this.CameraMatrixInverse.Set(1, 0, 0); this.CameraMatrixInverse.Set(1, 1, 0.00188271); this.CameraMatrixInverse.Set(1, 2, -0.45184976);
+            this.CameraMatrixInverse.Set(2, 0, 0); this.CameraMatrixInverse.Set(2, 1, 0); this.CameraMatrixInverse.Set(2, 2, 1);
         }
-        */
+        
+        /// <summary>
+        /// Map point from camera coordinates to room coordinates
+        /// </summary>
+        private SpacePoint CameraPointToRoomPoint(SpacePoint cameraPoint)
+        {            
+            double depth = cameraPoint.Z;
+            cameraPoint.Z = 1;
+
+            Matrix cameraCoordinatesVector = CameraMatrixInverse * (depth * new Matrix(cameraPoint));
+
+            SpacePoint cameraCoordinatesPoint = new SpacePoint(cameraCoordinatesVector);
+            
+            //    暂时设房间坐标系为深度摄像头坐标系，右手系，单位 MM
+            SpacePoint roomPoint = cameraCoordinatesPoint;
+            //
+            //    对cameraCoordinatesPoint进行rotate得到roompoint
+            //
+            System.Diagnostics.Debug.WriteLine(roomPoint.X.ToString() + " " + roomPoint.Y.ToString() + " " + roomPoint.Z.ToString());
+            return roomPoint;
+        }
 
         /// <summary>
         /// Map point from camera coordinates to room coordinates
         /// </summary>
-        private Matrix CameraCoordinatesToRoomCoordinates(Matrix point)
+        private SpacePoint RoomPointToCameraPoint(SpacePoint roomPoint)
         {
-            return new Matrix(3, 1);//TransMatrix * point;
+            Matrix cameraCoordinatesVector = new Matrix(roomPoint);
+            //
+            //  对roomPoint进行rotate得到cameraCoordinatesMatrix
+            //
+
+            double depth = cameraCoordinatesVector.Get(2, 0);
+
+            SpacePoint cameraPoint = new SpacePoint((1 / depth) * (CameraMatrix * cameraCoordinatesVector));
+            return cameraPoint;
         }
 
         /// <summary>
         /// Fine the intersection on the room's walls
         /// </summary>
-        private Point FindTheIntersection(Matrix start, Matrix end)
+        private SpacePoint FindTheIntersection(SpacePoint start, SpacePoint end)
         {
             /*
              DepthSpaceVector dir = new DepthSpaceVector(endPoint.X - startPoint.X, endPoint.Y - startPoint.Y, endPoint.Z - startPoint.Z);
@@ -414,9 +398,19 @@ namespace Tsinghua.Kinect.RemotePoint
                 this.RenderClippedEdges(new Point(X + dir.X / length, Y + dir.Y / length), drawingContext);
             }
             */
-            return new Point(22, 22);
+            return end;
         }
 
+
+        /*
+        private const int DMAFilterN = 3;
+        private Filter DMAFilterX = new DMAFilter(DMAFilterN);
+        private Filter DMAFilterY = new DMAFilter(DMAFilterN);
+
+        private const int MedianFilterN = 4;
+        private Filter MedianFilterX = new MedianFilter(MedianFilterN);
+        private Filter MedianFilterY = new MedianFilter(MedianFilterN);
+        */
         /// <summary>
         /// draw output points on the screen
         /// </summary>
@@ -429,19 +423,31 @@ namespace Tsinghua.Kinect.RemotePoint
                 foreach (Player player in this.players)
                 {
                     if (player.headAndHandValid == true)
-                    {
-                        Point showPoint = player.endPointInColorFrame;
-                            //FindTheIntersection(CameraCoordinatesToRoomCoordinates(player.startPointInCameraCoordinates), 
-                            //                    CameraCoordinatesToRoomCoordinates(player.endPointInCameraCoordinates));
+                    {                        
+                        /*
+                        DMAFilterX.SetValue(player.endPointInColorFrame.X);
+                        DMAFilterY.SetValue(player.endPointInColorFrame.Y);
+                        Point DMAPoint = new Point(DMAFilterX.GetValue(), DMAFilterY.GetValue());
+                        
+                        MedianFilterX.SetValue(player.endPointInColorFrame.X);
+                        MedianFilterY.SetValue(player.endPointInColorFrame.Y);
+                        Point MedianPoint = new Point(MedianFilterX.GetValue(), MedianFilterY.GetValue());
+                        */
 
+                        SpacePoint intersection = FindTheIntersection(CameraPointToRoomPoint(player.startPointInCameraCoordinates),
+                                                                      CameraPointToRoomPoint(player.endPointInCameraCoordinates));
+                        /*
                         if (showPoint.X >= 0 && showPoint.X < RenderHeight && showPoint.Y >= 0 && showPoint.Y < RenderHeight)
                         {
-                            dc.DrawEllipse(this.PointBrush, null, showPoint, this.PointThickness, this.PointThickness);
+                            dc.DrawEllipse(Brushes.White, null, showPoint, this.PointThickness, this.PointThickness);
+                            //dc.DrawEllipse(Brushes.Purple, null, DMAPoint, this.PointThickness, this.PointThickness);
+                            //dc.DrawEllipse(Brushes.Orange, null, MedianPoint, this.PointThickness, this.PointThickness);
                         }
                         else
                         {
                             RenderClippedEdges(showPoint, dc);
                         }
+                         */
                     }
                 }
             }
@@ -506,5 +512,6 @@ namespace Tsinghua.Kinect.RemotePoint
                 }
             }
         }
+
     }
 }

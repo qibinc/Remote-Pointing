@@ -79,6 +79,8 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Filters\PointFiltering.cs" />
+    <Compile Include="Matrix\SpacePoint.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -87,14 +89,17 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Filter.cs" />
+    <Compile Include="Filters\DMAFilter.cs" />
+    <Compile Include="Filters\Filter.cs" />
+    <Compile Include="Filters\MedianFilter.cs" />
+    <Compile Include="Filters\FramePointFiltering.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Matrix.cs" />
+    <Compile Include="Matrix\Matrix.cs" />
     <Compile Include="Painter.cs" />
     <Compile Include="Player.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">

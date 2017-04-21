@@ -12,7 +12,7 @@ namespace Tsinghua.Kinect.RemotePoint
     class Painter
     {
         public KinectSensor sensor;
-
+        
         private readonly double HeadHandThickness = 4;
 
         private readonly double BodyCenterThickness = 10;
@@ -133,7 +133,7 @@ namespace Tsinghua.Kinect.RemotePoint
         public Point SkeletonPointToScreen(SkeletonPoint skelpoint)
         {
             // Convert point to color space.  
-            ColorImagePoint colorPoint = this.sensor.CoordinateMapper.MapSkeletonPointToColorPoint(skelpoint, ColorImageFormat.RgbResolution640x480Fps30);
+            ColorImagePoint colorPoint = this.sensor.CoordinateMapper.MapSkeletonPointToColorPoint(skelpoint, this.sensor.ColorStream.Format);
             return new Point(colorPoint.X, colorPoint.Y);
         }
 
