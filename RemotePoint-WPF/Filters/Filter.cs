@@ -7,5 +7,8 @@ namespace Tsinghua.Kinect.RemotePoint
 {
     interface Filter
     {
+        void SetValue(double newData);
+
+        double GetValue();
     }
 }
