@@ -106,7 +106,7 @@ namespace Tsinghua.Kinect.RemotePoint
 
             if (this.sensor != null)
             {
-                /*
+                
                 // Turn on the skeleton, color, depth stream to receive skeleton frames
                 TransformSmoothParameters smoothingParam = new TransformSmoothParameters();
                 {
@@ -117,8 +117,8 @@ namespace Tsinghua.Kinect.RemotePoint
                     smoothingParam.MaxDeviationRadius = 0.1f;
                 };
                 this.sensor.SkeletonStream.Enable(smoothingParam);
-                */
-                this.sensor.SkeletonStream.Enable();
+                
+                //this.sensor.SkeletonStream.Enable();
                 this.sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Seated;
                 this.checkBoxSeatedMode.SetCurrentValue(CheckBox.IsCheckedProperty, true);
                 this.sensor.ColorStream.Enable(ColorImageFormat.RgbResolution640x480Fps30);
@@ -282,7 +282,7 @@ namespace Tsinghua.Kinect.RemotePoint
                 // Draw skeletons
                 foreach (Player player in this.players)
                 {
-                    player.DrawSkeleton(dc);
+                    //player.DrawSkeleton(dc);
 
                     if (player.headAndHandValid == true)
                     {
@@ -311,39 +311,28 @@ namespace Tsinghua.Kinect.RemotePoint
             using (DrawingContext dc = this.outputDrawingGroup.Open())
             {
                 dc.DrawImage(blankColorBitmap, new Rect(0.0, 0.0, RenderWidth, RenderHeight));
+                RoomSetting.PaintPlanesAndCoordinates(dc);
 
                 foreach (Player player in this.players)
                 {
                     if (player.headAndHandValid == true)
                     {
-                        /*
-                        DMAFilterX.SetValue(player.endPointInColorFrame.X);
-                        DMAFilterY.SetValue(player.endPointInColorFrame.Y);
-                        Point DMAPoint = new Point(DMAFilterX.GetValue(), DMAFilterY.GetValue());
-                        
-                        MedianFilterX.SetValue(player.endPointInColorFrame.X);
-                        MedianFilterY.SetValue(player.endPointInColorFrame.Y);
-                        Point MedianPoint = new Point(MedianFilterX.GetValue(), MedianFilterY.GetValue());
-                        */
-
                         SpacePoint intersection = RoomSetting.FindTheIntersection(RoomSetting.CameraPointToRoomPoint(player.startPointInCameraCoordinates),
                                                                       RoomSetting.CameraPointToRoomPoint(player.endPointInCameraCoordinates));
                         
-                        //  暂时显示
-                        Point showPoint = new Point((2 - intersection.X) / 4 * 640, intersection.Y / 4 * 480);
+                        dc.DrawLine(new Pen(Brushes.Orange, 2), RoomSetting.RoomPointToObserveScreenPoint(RoomSetting.CameraPointToRoomPoint(player.startPointInCameraCoordinates)),
+                                                                     RoomSetting.RoomPointToObserveScreenPoint(RoomSetting.CameraPointToRoomPoint(player.endPointInCameraCoordinates)));
+
+                        Point showPoint = RoomSetting.RoomPointToObserveScreenPoint(intersection);
                         
-                        /*
                         if (showPoint.X >= 0 && showPoint.X < RenderHeight && showPoint.Y >= 0 && showPoint.Y < RenderHeight)
                         {
                             dc.DrawEllipse(Brushes.White, null, showPoint, this.PointThickness, this.PointThickness);
-                            //dc.DrawEllipse(Brushes.Purple, null, DMAPoint, this.PointThickness, this.PointThickness);
-                            //dc.DrawEllipse(Brushes.Orange, null, MedianPoint, this.PointThickness, this.PointThickness);
                         }
                         else
                         {
                             RenderClippedEdges(showPoint, dc);
                         }
-                         */
                     }
                 }
             }

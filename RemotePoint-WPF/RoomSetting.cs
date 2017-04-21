@@ -2,26 +2,20 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Windows.Media;
+using System.Windows;
 
 namespace Tsinghua.Kinect.RemotePoint
 {
     class RoomSetting
     {
         //private static double MMInPixel = 1000f / 5.2f;
-
         private static double focalLengthInPixel = 531.15f;
 
+        private static Matrix CameraMatrix;
         private static Matrix CameraMatrixInverse;
 
-        private static Matrix CameraMatrix;
-
         private static Plate[] roomPlates = new Plate[5];
-
-        public static void SetPlanes()
-        {
-            roomPlates[0] = new Plate(new SpacePoint(-2, -2, -1), new SpacePoint(-2, 2, -1),
-                                      new SpacePoint(2, -2, -1), new SpacePoint(2, 2, -1));
-        }
 
         public static void SetCameraMatrix()
         {
@@ -34,6 +28,37 @@ namespace Tsinghua.Kinect.RemotePoint
             CameraMatrixInverse.Set(0, 0, 0.00188271); CameraMatrixInverse.Set(0, 1, 0); CameraMatrixInverse.Set(0, 2, -0.60246635);
             CameraMatrixInverse.Set(1, 0, 0); CameraMatrixInverse.Set(1, 1, 0.00188271); CameraMatrixInverse.Set(1, 2, -0.45184976);
             CameraMatrixInverse.Set(2, 0, 0); CameraMatrixInverse.Set(2, 1, 0); CameraMatrixInverse.Set(2, 2, 1);
+        }
+
+        public static void SetPlanes()
+        {
+            roomPlates[0] = new Plate(new SpacePoint(-2000, -2000, -1000), new SpacePoint(-2000, 2000, -1000),
+                                      new SpacePoint(2000, 2000, -1000), new SpacePoint(2000, -2000, -1000));
+            roomPlates[1] = new Plate(new SpacePoint(2000, 2000, -1000), new SpacePoint(-2000, 2000, -1000),
+                                      new SpacePoint(-2000, 2000, 3000), new SpacePoint(2000, 2000, 3000));
+            roomPlates[2] = new Plate(new SpacePoint(2000, -2000, -1000), new SpacePoint(2000, 2000, -1000),
+                                      new SpacePoint(2000, 2000, 3000), new SpacePoint(2000, -2000, 3000));
+            roomPlates[3] = new Plate(new SpacePoint(-2000, -2000, -1000), new SpacePoint(-2000, 2000, -1000),
+                                      new SpacePoint(-2000, 2000, 3000), new SpacePoint(-2000, -2000, 3000));
+
+        }
+
+        public static void PaintPlanesAndCoordinates(DrawingContext dc)
+        {
+            //  画坐标系
+            dc.DrawLine(new Pen(Brushes.LightGoldenrodYellow, 3), RoomPointToObserveScreenPoint(new SpacePoint(0, 0, 0)), RoomPointToObserveScreenPoint(new SpacePoint(1000, 0, 0)));
+            dc.DrawLine(new Pen(Brushes.LightGoldenrodYellow, 3), RoomPointToObserveScreenPoint(new SpacePoint(0, 0, 0)), RoomPointToObserveScreenPoint(new SpacePoint(0, 1000, 0)));
+            dc.DrawLine(new Pen(Brushes.LightGoldenrodYellow, 3), RoomPointToObserveScreenPoint(new SpacePoint(0, 0, 0)), RoomPointToObserveScreenPoint(new SpacePoint(0, 0, 1000)));
+        
+            //  画板块
+            foreach (Plate plate in roomPlates)
+                if (plate != null)
+                {
+                    dc.DrawLine(new Pen(Brushes.Blue, 3), RoomPointToObserveScreenPoint(plate.A), RoomPointToObserveScreenPoint(plate.B));
+                    dc.DrawLine(new Pen(Brushes.Blue, 3), RoomPointToObserveScreenPoint(plate.B), RoomPointToObserveScreenPoint(plate.C));
+                    dc.DrawLine(new Pen(Brushes.Blue, 3), RoomPointToObserveScreenPoint(plate.C), RoomPointToObserveScreenPoint(plate.D));
+                    dc.DrawLine(new Pen(Brushes.Blue, 3), RoomPointToObserveScreenPoint(plate.D), RoomPointToObserveScreenPoint(plate.A));
+                }
         }
 
         /// <summary>
@@ -55,20 +80,27 @@ namespace Tsinghua.Kinect.RemotePoint
             return roomPoint;
         }
 
+
+
         /// <summary>
-        /// Map point from camera coordinates to room coordinates
+        /// Map point from room coordinates to observe window
         /// </summary>
-        public static SpacePoint RoomPointToCameraPoint(SpacePoint roomPoint)
+        public static Point RoomPointToObserveScreenPoint(SpacePoint roomPoint)
         {
-            SpacePoint cameraCoordinatesPoint = roomPoint;
+            //  set observe matrix
+            SpacePoint ObservePoint = new SpacePoint(0, 0, 0);
             //
-            //  对roomPoint进行rotate得到cameraCoordinatesMatrix
+            //  对roomPoint进行rotate得到observe matrix
             //
 
-            double depth = cameraCoordinatesPoint.Z;
+            ObservePoint.X = -roomPoint.X - 1000;
+            ObservePoint.Y = roomPoint.Y - 1000;
+            ObservePoint.Z = -roomPoint.Z + 5000;
 
-            SpacePoint cameraPoint = new SpacePoint((1 / depth) * (CameraMatrix * cameraCoordinatesPoint));
-            return cameraPoint;
+            double depth = ObservePoint.Z;
+
+            SpacePoint ObserveScreenPoint = new SpacePoint((1 / depth) * (CameraMatrix * ObservePoint));
+            return new Point(ObserveScreenPoint.X, ObserveScreenPoint.Y);
         }
 
         /// <summary>
@@ -76,42 +108,21 @@ namespace Tsinghua.Kinect.RemotePoint
         /// </summary>
         public static SpacePoint FindTheIntersection(SpacePoint start, SpacePoint end)
         {
-            /*
-             DepthSpaceVector dir = new DepthSpaceVector(endPoint.X - startPoint.X, endPoint.Y - startPoint.Y, endPoint.Z - startPoint.Z);
-            
-            double length = System.Math.Sqrt(dir.X * dir.X + dir.Y * dir.Y + dir.Z * dir.Z);
+            foreach (Plate plate in roomPlates)
+                if (plate != null)
+                {
+                    SpacePoint normal = plate.NormalVector;
 
-            double X = endPoint.X, Y = endPoint.Y, Z = endPoint.Z;
+                    double t = -((start.X - plate.A.X) * normal.X + (start.Y - plate.A.Y) * normal.Y + (start.Z - plate.A.Z) * normal.Z)
+                                / ((end - start).X * normal.X + (end - start).Y * normal.Y + (end - start).Z * normal.Z);
 
-            if (!((int)X >= 0 && (int)X < RenderWidth && (int)Y >= 0 && (int)Y < RenderHeight))
-            {
-                return;
-            }
+                    SpacePoint intersection = start + t * (end - start);
 
-            //drawingContext.DrawEllipse(Brushes.LightGoldenrodYellow, null, new Point(X, Y), HandThickness, HandThickness);
+                    //System.Diagnostics.Debug.WriteLine(intersection.X.ToString() + " " + intersection.Y.ToString() + " " + intersection.Z.ToString());
 
-            while ((int)(X + dir.X / length) >= 0 && (int)(X + dir.X / length) < RenderWidth && (int)(Y + dir.Y / length) >= 0 && (int)(Y + dir.Y / length) < RenderHeight)
-            {
-                X += dir.X / length;
-                Y += dir.Y / length;
-                Z += dir.Z / length;
-                //if (wallDepthImage[RenderWidth * (int)Y + (int)X] < Z)
-                if (2500 < Z)
-                    break;
-            }
-
-            if ((int)(X + dir.X / length) >= 0 && (int)(X + dir.X / length) < RenderWidth && (int)(Y + dir.Y / length) >= 0 && (int)(Y + dir.Y / length) < RenderHeight)
-            {
-                drawingContext.DrawEllipse(Brushes.LightGoldenrodYellow, null, new Point(X, Y), HandThickness, HandThickness);
-
-                //drawingContext.DrawEllipse(Brushes.LightGoldenrodYellow, null, new Point(RenderWidth - 1 - wallColorCoordinates[RenderWidth * (int)Y + RenderWidth - 1 - (int)X] % 640, wallColorCoordinates[RenderWidth * (int)Y + RenderWidth - 1 - (int)X] / 640), HandThickness, HandThickness);
-            }
-            else
-            {
-                this.RenderClippedEdges(new Point(X + dir.X / length, Y + dir.Y / length), drawingContext);
-            }
-            */
-            return end;
+                    return intersection;
+                }
+            return null;
         }
 
     }

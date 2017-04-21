@@ -6,7 +6,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Media;
 using Microsoft.Kinect;
-using MyFilter = Tsinghua.Kinect.RemotePoint.DMAFilter;
+using MyFilter = Tsinghua.Kinect.RemotePoint.NoneFilter;
 
 namespace Tsinghua.Kinect.RemotePoint
 {

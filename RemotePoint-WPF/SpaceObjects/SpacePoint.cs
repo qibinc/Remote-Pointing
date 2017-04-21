@@ -68,6 +68,11 @@ namespace Tsinghua.Kinect.RemotePoint
             return new SpacePoint(left.X - right.X, left.Y - right.Y, left.Z - right.Z);
         }
 
+        public static SpacePoint operator *(double k, SpacePoint point)
+        {
+            return new SpacePoint(k * point.X, k * point.Y, k * point.Z);
+        }
+
         public static SpacePoint CrossProduct(SpacePoint left, SpacePoint right)
         {
             return new SpacePoint(left.Y * right.Z - left.Z * right.Y, left.Z * right.X - left.X * right.Z, left.X * right.Y - left.Y * right.X);
@@ -76,6 +81,11 @@ namespace Tsinghua.Kinect.RemotePoint
         public static double DotProduct(SpacePoint left, SpacePoint right)
         {
             return left.X * right.X + left.Y * right.Y + left.Z * right.Z;
+        }
+
+        public static double Norm(SpacePoint point)
+        {
+            return System.Math.Sqrt(point.X * point.X + point.Y * point.Y + point.Z * point.Z);
         }
 
     }
