@@ -32,11 +32,6 @@ namespace Tsinghua.Kinect.RemotePoint
             mat.value.CopyTo(this.value, 0);
         }
 
-        //public static implicit operator SpacePoint(Matrix mat)
-        //{
-        //    return new SpacePoint(mat);
-        //}
-
         public static Matrix operator +(Matrix mat1, Matrix mat2)
         {
             if (mat1.row != mat2.row || mat1.column != mat2.column)
@@ -94,6 +89,44 @@ namespace Tsinghua.Kinect.RemotePoint
         {
             if (row >= 0 && row < this.row && col >= 0 && col < this.column)
                 value[row * this.column + col] = val;
+        }
+
+        private static Matrix XRotationMatrix(double rad)
+        {
+            Matrix mat = new Matrix(3, 3);
+            mat.Set(0, 0, 1);
+            mat.Set(1, 1, System.Math.Cos(rad));
+            mat.Set(1, 2, System.Math.Sin(rad));
+            mat.Set(2, 1, -System.Math.Sin(rad));
+            mat.Set(2, 2, System.Math.Cos(rad));
+            return mat;
+        }
+
+        private static Matrix YRotationMatrix(double rad)
+        {
+            Matrix mat = new Matrix(3, 3);
+            mat.Set(0, 0, System.Math.Cos(rad));
+            mat.Set(0, 2, -System.Math.Sin(rad));
+            mat.Set(1, 1, 1);
+            mat.Set(2, 0, System.Math.Sin(rad));
+            mat.Set(2, 2, System.Math.Cos(rad));
+            return mat;
+        }
+
+        private static Matrix ZRotationMatrix(double rad)
+        {
+            Matrix mat = new Matrix(3, 3);
+            mat.Set(0, 0, System.Math.Cos(rad));
+            mat.Set(0, 1, System.Math.Sin(rad));
+            mat.Set(1, 0, -System.Math.Sin(rad));
+            mat.Set(1, 1, System.Math.Cos(rad));
+            mat.Set(2, 2, 1);
+            return mat;
+        }
+
+        public static Matrix RotationMatrix(double thetax, double thetay, double thetaz)
+        {
+            return ZRotationMatrix(thetaz / 180 * System.Math.PI) * YRotationMatrix(thetay / 180 * System.Math.PI) * XRotationMatrix(thetax / 180 * System.Math.PI);
         }
     }
 }

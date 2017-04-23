@@ -12,8 +12,17 @@ namespace Tsinghua.Kinect.RemotePoint
         //private static double MMInPixel = 1000f / 5.2f;
         private static double focalLengthInPixel = 531.15f;
 
+        private static double roomLength = 6000;
+        private static double roomWidth = 4000;
+        private static double roomHeight = 3300;
+
         private static Matrix CameraMatrix;
         private static Matrix CameraMatrixInverse;
+        private static Matrix ObserveMatrix;
+        private static Matrix Kinect2RoomRotation;
+        private static Matrix Kinect2RoomTranslation;
+        private static Matrix Room2ObserveRotation;
+        private static Matrix Room2ObserveTranslation;
 
         private static Plate[] roomPlates = new Plate[5];
 
@@ -28,25 +37,45 @@ namespace Tsinghua.Kinect.RemotePoint
             CameraMatrixInverse.Set(0, 0, 0.00188271); CameraMatrixInverse.Set(0, 1, 0); CameraMatrixInverse.Set(0, 2, -0.60246635);
             CameraMatrixInverse.Set(1, 0, 0); CameraMatrixInverse.Set(1, 1, 0.00188271); CameraMatrixInverse.Set(1, 2, -0.45184976);
             CameraMatrixInverse.Set(2, 0, 0); CameraMatrixInverse.Set(2, 1, 0); CameraMatrixInverse.Set(2, 2, 1);
+
+            ObserveMatrix = new Matrix(3, 3);
+            ObserveMatrix.Set(0, 0, focalLengthInPixel / 1.2);
+            ObserveMatrix.Set(1, 1, focalLengthInPixel / 1.2);
+            ObserveMatrix.Set(0, 2, 640 / 2);
+            ObserveMatrix.Set(1, 2, 480 / 2);
+            ObserveMatrix.Set(2, 2, 1);
+
+            //  Kinect坐标系到房间坐标系
+            Kinect2RoomRotation = Matrix.RotationMatrix(90, 0, 90);
+            Kinect2RoomTranslation = new SpacePoint(roomLength / 3, roomWidth / 2, 1300);
+
+            //  房间坐标系到观察坐标系
+            Room2ObserveRotation = Matrix.RotationMatrix(-80, 0, 0) * Matrix.RotationMatrix(0, 0, 105);
+            Room2ObserveTranslation = new SpacePoint(roomLength + 300, roomWidth - 500, 500);
         }
 
         public static void SetPlates()
         {
             //  正面
-            roomPlates[0] = new Plate(new SpacePoint(-2000, -2000, -1000), new SpacePoint(-2000, 1300, -1000),
-                                      new SpacePoint(2000, 1300, -1000), new SpacePoint(2000, -2000, -1000));
+            roomPlates[0] = new Plate(new SpacePoint(0, 0, 0), new SpacePoint(0, roomWidth, 0),
+                                      new SpacePoint(0, roomWidth, roomHeight), new SpacePoint(0, 0, roomHeight));
 
             //  地板
-            roomPlates[1] = new Plate(new SpacePoint(2000, 1300, -1000), new SpacePoint(-2000, 1300, -1000),
-                                      new SpacePoint(-2000, 1300, 4000), new SpacePoint(2000, 1300, 4000));
+            roomPlates[1] = new Plate(new SpacePoint(0, 0, 0), new SpacePoint(0, roomWidth, 0),
+                                      new SpacePoint(roomLength, roomWidth, 0), new SpacePoint(roomLength, 0, 0));
 
             //  左边墙
-            roomPlates[2] = new Plate(new SpacePoint(2000, -2000, -1000), new SpacePoint(2000, 1300, -1000),
-                                      new SpacePoint(2000, 1300, 3000), new SpacePoint(2000, -2000, 3000));
+            roomPlates[2] = new Plate(new SpacePoint(0, 0, 0), new SpacePoint(roomLength, 0, 0),
+                                      new SpacePoint(roomLength, 0, roomHeight), new SpacePoint(0, 0, roomHeight));
 
             //  右边墙
-            roomPlates[3] = new Plate(new SpacePoint(-2000, -2000, -1000), new SpacePoint(-2000, 1300, -1000),
-                                      new SpacePoint(-2000, 1300, 3000), new SpacePoint(-2000, -2000, 3000));
+            roomPlates[3] = new Plate(new SpacePoint(0, roomWidth, 0), new SpacePoint(roomLength, roomWidth, 0),
+                                      new SpacePoint(roomLength, roomWidth, roomHeight), new SpacePoint(0, roomWidth, roomHeight));
+
+            //  天花板
+            roomPlates[4] = new Plate(new SpacePoint(0, 0, roomHeight), new SpacePoint(0, roomWidth, roomHeight),
+                                      new SpacePoint(roomLength, roomWidth, roomHeight), new SpacePoint(roomLength, 0, roomHeight));
+
         }
 
         /// <summary>
@@ -59,11 +88,9 @@ namespace Tsinghua.Kinect.RemotePoint
 
             SpacePoint cameraCoordinatesPoint = new SpacePoint(CameraMatrixInverse * (depth * cameraPoint));
 
-            //    暂时设房间坐标系为深度摄像头坐标系，右手系，单位 MM
-            SpacePoint roomPoint = cameraCoordinatesPoint;
-            //
-            //    对cameraCoordinatesPoint进行rotate得到roompoint
-            //
+            //    对cameraCoordinatesPoint进行旋转平移得到roompoint
+            SpacePoint roomPoint = new SpacePoint(Kinect2RoomRotation * cameraCoordinatesPoint + Kinect2RoomTranslation);
+
             //System.Diagnostics.Debug.WriteLine(roomPoint.X.ToString() + " " + roomPoint.Y.ToString() + " " + roomPoint.Z.ToString());
 
             return roomPoint;
@@ -74,19 +101,19 @@ namespace Tsinghua.Kinect.RemotePoint
         /// </summary>
         public static Point RoomPointToObservePoint(SpacePoint roomPoint)
         {
-            //  set observe matrix
-            SpacePoint ObservePoint = new SpacePoint(0, 0, 0);
-            //
-            //  对roomPoint进行rotate得到observe matrix
-            //
-
-            ObservePoint.X = -roomPoint.X - 1000;
-            ObservePoint.Y = roomPoint.Y - 1000;
-            ObservePoint.Z = -roomPoint.Z + 5000;
+            //  对 roomPoint 进行旋转平移得到 observe matrix
+            SpacePoint ObservePoint = new SpacePoint(Room2ObserveRotation * (roomPoint - Room2ObserveTranslation));
+            
+            //System.Diagnostics.Debug.WriteLine(roomPoint.X.ToString() + " " + roomPoint.Y.ToString() + " " + roomPoint.Z.ToString());
 
             double depth = ObservePoint.Z;
 
-            SpacePoint ObserveScreenPoint = new SpacePoint((1 / depth) * (CameraMatrix * ObservePoint));
+            SpacePoint ObserveScreenPoint = new SpacePoint((1 / depth) * (ObserveMatrix * ObservePoint));
+
+            //System.Diagnostics.Debug.WriteLine(roomPoint.X.ToString() + " " + roomPoint.Y.ToString() + " " + roomPoint.Z.ToString());
+            //System.Diagnostics.Debug.WriteLine(ObservePoint.X.ToString() + " " + ObservePoint.Y.ToString() + " " + ObservePoint.Z.ToString());
+            //System.Diagnostics.Debug.WriteLine(ObserveScreenPoint.X.ToString() + " " + ObserveScreenPoint.Y.ToString() + " " + ObserveScreenPoint.Z.ToString());
+            
             return new Point(ObserveScreenPoint.X, ObserveScreenPoint.Y);
         }
 
@@ -110,11 +137,11 @@ namespace Tsinghua.Kinect.RemotePoint
 
                     SpacePoint intersection = start + t * (end - start);
 
-                    System.Diagnostics.Debug.WriteLine(intersection.X);
+                    //System.Diagnostics.Debug.WriteLine(intersection.X);
 
                     //System.Diagnostics.Debug.WriteLine(intersection.X.ToString() + " " + intersection.Y.ToString() + " " + intersection.Z.ToString());
 
-                    if (plate.InsidePlate(intersection))
+                    if (t > 0 && plate.InsidePlate(intersection))
                     {
                         plate.Active = true;
 
@@ -140,11 +167,6 @@ namespace Tsinghua.Kinect.RemotePoint
 
         public static void PaintPlatesAndCoordinates(DrawingContext dc)
         {
-            //  画坐标系
-            dc.DrawLine(new Pen(Brushes.LightGoldenrodYellow, 3), RoomPointToObservePoint(new SpacePoint(0, 0, 0)), RoomPointToObservePoint(new SpacePoint(1000, 0, 0)));
-            dc.DrawLine(new Pen(Brushes.LightGoldenrodYellow, 3), RoomPointToObservePoint(new SpacePoint(0, 0, 0)), RoomPointToObservePoint(new SpacePoint(0, 1000, 0)));
-            dc.DrawLine(new Pen(Brushes.LightGoldenrodYellow, 3), RoomPointToObservePoint(new SpacePoint(0, 0, 0)), RoomPointToObservePoint(new SpacePoint(0, 0, 1000)));
-
             //  画板块
             //  先画inactive 再画active
             foreach (Plate plate in roomPlates)
@@ -165,6 +187,12 @@ namespace Tsinghua.Kinect.RemotePoint
                         plate.Active = false;
                     }
                 }
+
+            //  画kinect
+            dc.DrawLine(new Pen(Brushes.LightGoldenrodYellow, 2), RoomPointToObservePoint(new SpacePoint(2000, 2000, 0)), RoomPointToObservePoint(new SpacePoint(2000, 2000, 1300)));
+            dc.DrawLine(new Pen(Brushes.LightGoldenrodYellow, 2), RoomPointToObservePoint(new SpacePoint(2000, 1997, 1300)), RoomPointToObservePoint(new SpacePoint(2000, 2003, 1300)));
+            dc.DrawEllipse(Brushes.LightGoldenrodYellow, new Pen(Brushes.LightGoldenrodYellow, 2), RoomPointToObservePoint(new SpacePoint(2000, 2000, 1306)), 3, 3);
+
         }
 
     }

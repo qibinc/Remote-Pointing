@@ -120,8 +120,9 @@ namespace Tsinghua.Kinect.RemotePoint
                 this.sensor.SkeletonStream.Enable(smoothingParam);
                 
                 //this.sensor.SkeletonStream.Enable();
-                //this.sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Seated;
-                //this.checkBoxSeatedMode.SetCurrentValue(CheckBox.IsCheckedProperty, true);
+
+                this.sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Seated;
+                this.checkBoxSeatedMode.SetCurrentValue(CheckBox.IsCheckedProperty, true);
 
                 this.sensor.ColorStream.Enable(ColorImageFormat.RgbResolution640x480Fps30);
                 this.sensor.DepthStream.Enable(DepthImageFormat.Resolution640x480Fps30);
@@ -136,7 +137,7 @@ namespace Tsinghua.Kinect.RemotePoint
                 this.drawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, RenderWidth, RenderHeight));
                 
                 this.outputDrawingGroup = new DrawingGroup();
-                this.outputDrawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, RenderHeight, RenderHeight));
+                this.outputDrawingGroup.ClipGeometry = new RectangleGeometry(new Rect(0.0, 0.0, RenderWidth, RenderHeight));
                 
                 // Display the drawing using our image control
                 Image.Source = new DrawingImage(this.drawingGroup);
@@ -332,7 +333,7 @@ namespace Tsinghua.Kinect.RemotePoint
                             dc.DrawLine(new Pen(player.color, 2), RoomSetting.CameraPointToObservePoint(player.startPointInCameraCoordinates),
                                       showPoint);
 
-                            if (showPoint.X >= 0 && showPoint.X < RenderHeight && showPoint.Y >= 0 && showPoint.Y < RenderHeight)
+                            if (showPoint.X >= 0 && showPoint.X < RenderWidth && showPoint.Y >= 0 && showPoint.Y < RenderHeight)
                             {
                                 dc.DrawEllipse(player.color, null, showPoint, this.PointThickness, this.PointThickness);
                             }
