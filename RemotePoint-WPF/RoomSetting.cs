@@ -30,35 +30,23 @@ namespace Tsinghua.Kinect.RemotePoint
             CameraMatrixInverse.Set(2, 0, 0); CameraMatrixInverse.Set(2, 1, 0); CameraMatrixInverse.Set(2, 2, 1);
         }
 
-        public static void SetPlanes()
+        public static void SetPlates()
         {
-            roomPlates[0] = new Plate(new SpacePoint(-2000, -2000, -1000), new SpacePoint(-2000, 2000, -1000),
-                                      new SpacePoint(2000, 2000, -1000), new SpacePoint(2000, -2000, -1000));
-            roomPlates[1] = new Plate(new SpacePoint(2000, 2000, -1000), new SpacePoint(-2000, 2000, -1000),
-                                      new SpacePoint(-2000, 2000, 3000), new SpacePoint(2000, 2000, 3000));
-            roomPlates[2] = new Plate(new SpacePoint(2000, -2000, -1000), new SpacePoint(2000, 2000, -1000),
-                                      new SpacePoint(2000, 2000, 3000), new SpacePoint(2000, -2000, 3000));
-            roomPlates[3] = new Plate(new SpacePoint(-2000, -2000, -1000), new SpacePoint(-2000, 2000, -1000),
-                                      new SpacePoint(-2000, 2000, 3000), new SpacePoint(-2000, -2000, 3000));
+            //  正面
+            roomPlates[0] = new Plate(new SpacePoint(-2000, -2000, -1000), new SpacePoint(-2000, 1300, -1000),
+                                      new SpacePoint(2000, 1300, -1000), new SpacePoint(2000, -2000, -1000));
 
-        }
+            //  地板
+            roomPlates[1] = new Plate(new SpacePoint(2000, 1300, -1000), new SpacePoint(-2000, 1300, -1000),
+                                      new SpacePoint(-2000, 1300, 4000), new SpacePoint(2000, 1300, 4000));
 
-        public static void PaintPlanesAndCoordinates(DrawingContext dc)
-        {
-            //  画坐标系
-            dc.DrawLine(new Pen(Brushes.LightGoldenrodYellow, 3), RoomPointToObserveScreenPoint(new SpacePoint(0, 0, 0)), RoomPointToObserveScreenPoint(new SpacePoint(1000, 0, 0)));
-            dc.DrawLine(new Pen(Brushes.LightGoldenrodYellow, 3), RoomPointToObserveScreenPoint(new SpacePoint(0, 0, 0)), RoomPointToObserveScreenPoint(new SpacePoint(0, 1000, 0)));
-            dc.DrawLine(new Pen(Brushes.LightGoldenrodYellow, 3), RoomPointToObserveScreenPoint(new SpacePoint(0, 0, 0)), RoomPointToObserveScreenPoint(new SpacePoint(0, 0, 1000)));
-        
-            //  画板块
-            foreach (Plate plate in roomPlates)
-                if (plate != null)
-                {
-                    dc.DrawLine(new Pen(Brushes.Blue, 3), RoomPointToObserveScreenPoint(plate.A), RoomPointToObserveScreenPoint(plate.B));
-                    dc.DrawLine(new Pen(Brushes.Blue, 3), RoomPointToObserveScreenPoint(plate.B), RoomPointToObserveScreenPoint(plate.C));
-                    dc.DrawLine(new Pen(Brushes.Blue, 3), RoomPointToObserveScreenPoint(plate.C), RoomPointToObserveScreenPoint(plate.D));
-                    dc.DrawLine(new Pen(Brushes.Blue, 3), RoomPointToObserveScreenPoint(plate.D), RoomPointToObserveScreenPoint(plate.A));
-                }
+            //  左边墙
+            roomPlates[2] = new Plate(new SpacePoint(2000, -2000, -1000), new SpacePoint(2000, 1300, -1000),
+                                      new SpacePoint(2000, 1300, 3000), new SpacePoint(2000, -2000, 3000));
+
+            //  右边墙
+            roomPlates[3] = new Plate(new SpacePoint(-2000, -2000, -1000), new SpacePoint(-2000, 1300, -1000),
+                                      new SpacePoint(-2000, 1300, 3000), new SpacePoint(-2000, -2000, 3000));
         }
 
         /// <summary>
@@ -77,15 +65,14 @@ namespace Tsinghua.Kinect.RemotePoint
             //    对cameraCoordinatesPoint进行rotate得到roompoint
             //
             //System.Diagnostics.Debug.WriteLine(roomPoint.X.ToString() + " " + roomPoint.Y.ToString() + " " + roomPoint.Z.ToString());
+
             return roomPoint;
         }
-
-
 
         /// <summary>
         /// Map point from room coordinates to observe window
         /// </summary>
-        public static Point RoomPointToObserveScreenPoint(SpacePoint roomPoint)
+        public static Point RoomPointToObservePoint(SpacePoint roomPoint)
         {
             //  set observe matrix
             SpacePoint ObservePoint = new SpacePoint(0, 0, 0);
@@ -103,6 +90,11 @@ namespace Tsinghua.Kinect.RemotePoint
             return new Point(ObserveScreenPoint.X, ObserveScreenPoint.Y);
         }
 
+        public static Point CameraPointToObservePoint(SpacePoint cameraPoint)
+        {
+            return RoomPointToObservePoint(CameraPointToRoomPoint(cameraPoint));
+        }
+
         /// <summary>
         /// Fine the intersection on the room's walls
         /// </summary>
@@ -118,11 +110,61 @@ namespace Tsinghua.Kinect.RemotePoint
 
                     SpacePoint intersection = start + t * (end - start);
 
+                    System.Diagnostics.Debug.WriteLine(intersection.X);
+
                     //System.Diagnostics.Debug.WriteLine(intersection.X.ToString() + " " + intersection.Y.ToString() + " " + intersection.Z.ToString());
 
-                    return intersection;
+                    if (plate.InsidePlate(intersection))
+                    {
+                        plate.Active = true;
+
+                        return intersection;
+                    }
                 }
             return null;
+        }
+
+        private static Pen ActivePlatePen = new Pen(Brushes.Red, 3);
+        private static Pen InactivePlatePen = new Pen(Brushes.Blue, 3);
+
+        private static void PaintPlate(DrawingContext dc, Plate plate, Pen pen)
+        {
+            if (plate != null)
+            {
+                dc.DrawLine(pen, RoomPointToObservePoint(plate.A), RoomPointToObservePoint(plate.B));
+                dc.DrawLine(pen, RoomPointToObservePoint(plate.B), RoomPointToObservePoint(plate.C));
+                dc.DrawLine(pen, RoomPointToObservePoint(plate.C), RoomPointToObservePoint(plate.D));
+                dc.DrawLine(pen, RoomPointToObservePoint(plate.D), RoomPointToObservePoint(plate.A));
+            }
+        }
+
+        public static void PaintPlatesAndCoordinates(DrawingContext dc)
+        {
+            //  画坐标系
+            dc.DrawLine(new Pen(Brushes.LightGoldenrodYellow, 3), RoomPointToObservePoint(new SpacePoint(0, 0, 0)), RoomPointToObservePoint(new SpacePoint(1000, 0, 0)));
+            dc.DrawLine(new Pen(Brushes.LightGoldenrodYellow, 3), RoomPointToObservePoint(new SpacePoint(0, 0, 0)), RoomPointToObservePoint(new SpacePoint(0, 1000, 0)));
+            dc.DrawLine(new Pen(Brushes.LightGoldenrodYellow, 3), RoomPointToObservePoint(new SpacePoint(0, 0, 0)), RoomPointToObservePoint(new SpacePoint(0, 0, 1000)));
+
+            //  画板块
+            //  先画inactive 再画active
+            foreach (Plate plate in roomPlates)
+                if (plate != null)
+                {
+                    if (!plate.Active)
+                    {
+                        PaintPlate(dc, plate, InactivePlatePen);
+                    }
+                }
+
+            foreach (Plate plate in roomPlates)
+                if (plate != null)
+                {
+                    if (plate.Active)
+                    {
+                        PaintPlate(dc, plate, ActivePlatePen);
+                        plate.Active = false;
+                    }
+                }
         }
 
     }

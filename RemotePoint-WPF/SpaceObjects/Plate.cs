@@ -13,6 +13,9 @@ namespace Tsinghua.Kinect.RemotePoint
         public SpacePoint C;
         public SpacePoint D;
         public SpacePoint NormalVector;
+
+        public bool Active;
+
         public Plate(SpacePoint cA, SpacePoint cB, SpacePoint cC, SpacePoint cD)
         {
             A = cA;
@@ -26,8 +29,23 @@ namespace Tsinghua.Kinect.RemotePoint
                 System.Diagnostics.Debug.WriteLine("!!!Wall ERROR!!!!");
             }
 
-            NormalVector = SpacePoint.CrossProduct(B - A, C - A);
+            NormalVector = SpacePoint.CrossProduct(B - A, D - A);
 
+            Active = false;
+
+            if (SpacePoint.DotProduct(NormalVector, SpacePoint.CrossProduct(B - A, C - A)) * SpacePoint.DotProduct(NormalVector, SpacePoint.CrossProduct(D - A, C - A)) > 0)
+            {
+                SpacePoint t = C;
+                C = D;
+                D = t;
+            }
+        }
+
+        public bool InsidePlate(SpacePoint point)
+        {
+            return SpacePoint.DotProduct(NormalVector, SpacePoint.CrossProduct(B - A, point - A)) * SpacePoint.DotProduct(NormalVector, SpacePoint.CrossProduct(D - A, point - A)) < 0
+                && SpacePoint.DotProduct(NormalVector, SpacePoint.CrossProduct(A - B, point - B)) * SpacePoint.DotProduct(NormalVector, SpacePoint.CrossProduct(C - B, point - B)) < 0
+                && SpacePoint.DotProduct(NormalVector, SpacePoint.CrossProduct(B - C, point - C)) * SpacePoint.DotProduct(NormalVector, SpacePoint.CrossProduct(D - C, point - C)) < 0;
         }
     }
 }

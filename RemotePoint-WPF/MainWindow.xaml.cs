@@ -63,8 +63,6 @@ namespace Tsinghua.Kinect.RemotePoint
         /// </summary>
         private byte[] colorImage;
 
-        private readonly Brush PointBrush = Brushes.Red;
-
         private readonly double PointThickness = 5;
 
         /// <summary>
@@ -75,6 +73,9 @@ namespace Tsinghua.Kinect.RemotePoint
         private Skeleton[] skeletonData;
 
         private Player[] players;
+
+        private const int maxPlayerNumber = 5;
+        private Brush[] playerColors = new Brush[maxPlayerNumber] { Brushes.MediumPurple, Brushes.LightGreen, Brushes.Yellow, Brushes.Orange, Brushes.Pink };
 
         /// <summary>
         /// Initializes a new instance of the MainWindow class.
@@ -119,8 +120,9 @@ namespace Tsinghua.Kinect.RemotePoint
                 this.sensor.SkeletonStream.Enable(smoothingParam);
                 
                 //this.sensor.SkeletonStream.Enable();
-                this.sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Seated;
-                this.checkBoxSeatedMode.SetCurrentValue(CheckBox.IsCheckedProperty, true);
+                //this.sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Seated;
+                //this.checkBoxSeatedMode.SetCurrentValue(CheckBox.IsCheckedProperty, true);
+
                 this.sensor.ColorStream.Enable(ColorImageFormat.RgbResolution640x480Fps30);
                 this.sensor.DepthStream.Enable(DepthImageFormat.Resolution640x480Fps30);
 
@@ -148,7 +150,7 @@ namespace Tsinghua.Kinect.RemotePoint
 
                 RoomSetting.SetCameraMatrix();
 
-                RoomSetting.SetPlanes();
+                RoomSetting.SetPlates();
 
                 // Add an event handler to be called whenever there is new all frame data
                 this.sensor.AllFramesReady += this.OnAllFramesReady;
@@ -235,12 +237,32 @@ namespace Tsinghua.Kinect.RemotePoint
         {
             colorImageFrame.CopyPixelDataTo(this.colorImage);
 
+            for (int i = 0; i < RenderHeight; i++)
+            {
+                for (int j = 0; j < RenderWidth / 2; j++)
+                {
+                    for (int k = 0; k < sizeof(int); k++)
+                    {
+                        byte t = this.colorImage[(RenderWidth * i + j) * sizeof(int) + k];
+                        this.colorImage[(RenderWidth * i + j) * sizeof(int) + k] = this.colorImage[(RenderWidth * i + RenderWidth - j - 1) * sizeof(int) + k];
+                        this.colorImage[(RenderWidth * i + RenderWidth - j - 1) * sizeof(int) + k] = t;
+                    }
+                }
+            }
+
             // Write the pixel data into bitmap
             this.colorBitmap.WritePixels(
                 new Int32Rect(0, 0, this.colorBitmap.PixelWidth, this.colorBitmap.PixelHeight),
                 this.colorImage,
                 this.colorBitmap.PixelWidth * sizeof(int),
                 0);
+
+            // Draw the color scene background
+
+            using (DrawingContext dc = drawingGroup.Open())
+            {
+                dc.DrawImage(colorBitmap, new Rect(0.0, 0.0, RenderWidth, RenderHeight));
+            }
         }
 
         /// <summary>
@@ -252,17 +274,16 @@ namespace Tsinghua.Kinect.RemotePoint
             if (this.skeletonData == null || this.skeletonData.Length != skeletonFrame.SkeletonArrayLength)
             {
                 this.skeletonData = new Skeleton[skeletonFrame.SkeletonArrayLength];
-                this.players = new Player[skeletonFrame.SkeletonArrayLength];
-                for (int i = 0; i < this.skeletonData.Length; i++)
+                this.players = new Player[System.Math.Min(skeletonFrame.SkeletonArrayLength, maxPlayerNumber)];
+                for (int i = 0; i < this.skeletonData.Length && i < maxPlayerNumber; i++)
                 {
-                    this.players[i] = new Player();
-                    this.players[i].sensor = this.sensor;
+                    this.players[i] = new Player(this.sensor, playerColors[i]);
                 }
             }
 
             //  Copy skeleton data
             skeletonFrame.CopySkeletonDataTo(this.skeletonData);
-            for (int i = 0; i < this.skeletonData.Length; i++)
+            for (int i = 0; i < this.skeletonData.Length && i < maxPlayerNumber; i++)
             {
                 this.players[i].skeleton = this.skeletonData[i];
             }
@@ -273,24 +294,7 @@ namespace Tsinghua.Kinect.RemotePoint
                 player.AnalyzeHeadAndHands();
             }
 
-            //  Draw Players' skeletons
-            using (DrawingContext dc = this.drawingGroup.Open())
-            {
-                // Draw the color scene background
-                dc.DrawImage(colorBitmap, new Rect(0.0, 0.0, RenderWidth, RenderHeight));
-
-                // Draw skeletons
-                foreach (Player player in this.players)
-                {
-                    //player.DrawSkeleton(dc);
-
-                    if (player.headAndHandValid == true)
-                    {
-                        player.DrawSight(dc);
-                    }
-                }
-            }
-
+            DrawOutput();
             //this.InvalidateVisual();
         }
         
@@ -311,27 +315,31 @@ namespace Tsinghua.Kinect.RemotePoint
             using (DrawingContext dc = this.outputDrawingGroup.Open())
             {
                 dc.DrawImage(blankColorBitmap, new Rect(0.0, 0.0, RenderWidth, RenderHeight));
-                RoomSetting.PaintPlanesAndCoordinates(dc);
+                RoomSetting.PaintPlatesAndCoordinates(dc);
 
                 foreach (Player player in this.players)
                 {
+                    player.DrawSkeleton(dc);
+
                     if (player.headAndHandValid == true)
                     {
                         SpacePoint intersection = RoomSetting.FindTheIntersection(RoomSetting.CameraPointToRoomPoint(player.startPointInCameraCoordinates),
                                                                       RoomSetting.CameraPointToRoomPoint(player.endPointInCameraCoordinates));
-                        
-                        dc.DrawLine(new Pen(Brushes.Orange, 2), RoomSetting.RoomPointToObserveScreenPoint(RoomSetting.CameraPointToRoomPoint(player.startPointInCameraCoordinates)),
-                                                                     RoomSetting.RoomPointToObserveScreenPoint(RoomSetting.CameraPointToRoomPoint(player.endPointInCameraCoordinates)));
 
-                        Point showPoint = RoomSetting.RoomPointToObserveScreenPoint(intersection);
-                        
-                        if (showPoint.X >= 0 && showPoint.X < RenderHeight && showPoint.Y >= 0 && showPoint.Y < RenderHeight)
+                        if (intersection != null)
                         {
-                            dc.DrawEllipse(Brushes.White, null, showPoint, this.PointThickness, this.PointThickness);
-                        }
-                        else
-                        {
-                            RenderClippedEdges(showPoint, dc);
+                            Point showPoint = RoomSetting.RoomPointToObservePoint(intersection);
+                            dc.DrawLine(new Pen(player.color, 2), RoomSetting.CameraPointToObservePoint(player.startPointInCameraCoordinates),
+                                      showPoint);
+
+                            if (showPoint.X >= 0 && showPoint.X < RenderHeight && showPoint.Y >= 0 && showPoint.Y < RenderHeight)
+                            {
+                                dc.DrawEllipse(player.color, null, showPoint, this.PointThickness, this.PointThickness);
+                            }
+                            else
+                            {
+                                RenderClippedEdges(showPoint, dc);
+                            }
                         }
                     }
                 }

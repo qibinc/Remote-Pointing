@@ -12,29 +12,27 @@ namespace Tsinghua.Kinect.RemotePoint
 {
     class Player
     {
-        private const int FilterN = 3;
-
-        public Skeleton skeleton;
-
-        public KinectSensor _sensor;
-        public KinectSensor sensor
+        public Player(KinectSensor sensor, Brush color)
         {
-            get
-            {
-                return _sensor;
-            }
-            set
-            {
-                _sensor = value;
-                painter = new Painter();
-                painter.sensor = _sensor;
-            }
+            this.sensor = sensor;
+            this.color = color;
+            this.painter = new Painter(sensor, color);
         }
+
+        private KinectSensor sensor;
+
+        public Brush color;
+
+        private const int FilterN = 3;
+        
+        public Skeleton skeleton;
 
         private Painter painter;
 
+
         public bool headAndHandValid = false;
 
+        /*
         private FramePointFiltering _startFramePointFiltering = new FramePointFiltering(new MyFilter(FilterN), new MyFilter(FilterN));
         private Point startPointInColorFrame
         {
@@ -60,7 +58,7 @@ namespace Tsinghua.Kinect.RemotePoint
                 _endFramePointFiltering.SetValue(value);
             }
         }
-
+        */
         private PointFiltering _startPointFiltering = new PointFiltering(new MyFilter(FilterN), new MyFilter(FilterN), new MyFilter(FilterN));
         public SpacePoint startPointInCameraCoordinates
         {
@@ -87,14 +85,6 @@ namespace Tsinghua.Kinect.RemotePoint
             }
         }
 
-        private SpacePoint SkeletonPointToCameraPoint(SkeletonPoint point)
-        {
-            DepthImagePoint depthPoint = 
-                this.sensor.CoordinateMapper.MapSkeletonPointToDepthPoint(point, this.sensor.DepthStream.Format);
-
-            return new SpacePoint(640 - depthPoint.X, depthPoint.Y, depthPoint.Depth);
-        }
-
         /// <summary>
         ///  Called to update point info
         /// </summary>
@@ -117,18 +107,10 @@ namespace Tsinghua.Kinect.RemotePoint
             }
 
             this.headAndHandValid = true;
-            this.startPointInColorFrame = this.painter.SkeletonPointToScreen(skeleton.Joints[JointType.Head].Position);
-            this.startPointInCameraCoordinates = SkeletonPointToCameraPoint(skeleton.Joints[JointType.Head].Position);
-            this.endPointInColorFrame = this.painter.SkeletonPointToScreen(skeleton.Joints[JointType.HandRight].Position);
-            this.endPointInCameraCoordinates = SkeletonPointToCameraPoint(skeleton.Joints[JointType.HandRight].Position);
-        }
-
-        /// <summary>
-        /// Draw the sight on the screen
-        /// </summary>
-        public void DrawSight(DrawingContext dc)
-        {
-            this.painter.DrawSight(dc, startPointInColorFrame, endPointInColorFrame);
+            //this.startPointInColorFrame = this.painter.SkeletonPointToScreen(skeleton.Joints[JointType.Head].Position);
+            this.startPointInCameraCoordinates = this.painter.SkeletonPointToCameraPoint(skeleton.Joints[JointType.Head].Position);
+            //this.endPointInColorFrame = this.painter.SkeletonPointToScreen(skeleton.Joints[JointType.HandRight].Position);
+            this.endPointInCameraCoordinates = this.painter.SkeletonPointToCameraPoint(skeleton.Joints[JointType.HandRight].Position);
         }
 
         /// <summary>
@@ -138,6 +120,16 @@ namespace Tsinghua.Kinect.RemotePoint
         {
             this.painter.DrawSkeleton(dc, skeleton);
         }
+
+        /*
+        /// <summary>
+        /// Draw the sight on the screen
+        /// </summary>
+        public void DrawSight(DrawingContext dc)
+        {
+            this.painter.DrawSight(dc, startPointInColorFrame, endPointInColorFrame);
+        }
+        */
 
     }
 }

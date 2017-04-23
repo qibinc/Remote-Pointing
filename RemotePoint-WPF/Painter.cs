@@ -11,31 +11,31 @@ namespace Tsinghua.Kinect.RemotePoint
 {
     class Painter
     {
-        public KinectSensor sensor;
-        
+        public Painter(KinectSensor sensor, Brush color)
+        {
+            this.sensor = sensor;
+            this.color = color;
+
+            TrackedBonePen = new Pen(color, 6);
+            InferredBonePen = new Pen(Brushes.Gray, 2);
+            //SightLinePen = new Pen(Brushes.LightGoldenrodYellow, 3);
+        }
+
+        private KinectSensor sensor;
+
+        private Brush color;
+
         private readonly double HeadHandThickness = 4;
 
         private readonly double BodyCenterThickness = 10;
 
-        private readonly Brush CenterPointBrush = Brushes.Blue;
-
-        private readonly Pen TrackedBonePen = new Pen(Brushes.LightBlue, 6);
-
-        private readonly Pen InferredBonePen = new Pen(Brushes.Gray, 2);
-
-        private readonly Pen SightLinePen = new Pen(Brushes.LightGoldenrodYellow, 3);
-
         private readonly Brush HeadHandBrush = Brushes.LightGreen;
 
-        /// <summary>
-        /// Draw the sight on the screen
-        /// </summary>
-        public void DrawSight(DrawingContext dc, Point startPoint, Point endPoint)
-        {
-            dc.DrawEllipse(this.HeadHandBrush, null, startPoint, HeadHandThickness, HeadHandThickness);
-            dc.DrawEllipse(this.HeadHandBrush, null, endPoint, HeadHandThickness, HeadHandThickness);
-            dc.DrawLine(this.SightLinePen, startPoint, endPoint);
-        }
+        private readonly Pen TrackedBonePen;
+
+        private readonly Pen InferredBonePen;
+
+        private readonly Pen SightLinePen;
 
         /// <summary>
         /// Draw the skeletons on the screen
@@ -45,10 +45,6 @@ namespace Tsinghua.Kinect.RemotePoint
             if (skeleton.TrackingState == SkeletonTrackingState.Tracked)
             {
                 this.DrawBones(dc, skeleton);
-            }
-            else if (skeleton.TrackingState == SkeletonTrackingState.PositionOnly)
-            {
-                dc.DrawEllipse(this.CenterPointBrush, null, this.SkeletonPointToScreen(skeleton.Position), BodyCenterThickness, BodyCenterThickness);
             }
         }
 
@@ -122,9 +118,18 @@ namespace Tsinghua.Kinect.RemotePoint
                 drawPen = this.TrackedBonePen;
             }
 
-            dc.DrawLine(drawPen, this.SkeletonPointToScreen(joint0.Position), this.SkeletonPointToScreen(joint1.Position));
+            dc.DrawLine(drawPen, RoomSetting.CameraPointToObservePoint(SkeletonPointToCameraPoint(joint0.Position)), RoomSetting.CameraPointToObservePoint(SkeletonPointToCameraPoint(joint1.Position)));
         }
 
+        public SpacePoint SkeletonPointToCameraPoint(SkeletonPoint point)
+        {
+            DepthImagePoint depthPoint =
+                this.sensor.CoordinateMapper.MapSkeletonPointToDepthPoint(point, this.sensor.DepthStream.Format);
+
+            return new SpacePoint(640 - depthPoint.X, depthPoint.Y, depthPoint.Depth);
+        }
+
+        /*
         /// <summary>
         /// Maps a SkeletonPoint to lie within our render space and converts to Point
         /// </summary>
@@ -136,6 +141,19 @@ namespace Tsinghua.Kinect.RemotePoint
             ColorImagePoint colorPoint = this.sensor.CoordinateMapper.MapSkeletonPointToColorPoint(skelpoint, this.sensor.ColorStream.Format);
             return new Point(colorPoint.X, colorPoint.Y);
         }
+        */
+
+        /*
+        /// <summary>
+        /// Draw the sight on the screen
+        /// </summary>
+        public void DrawSight(DrawingContext dc, Point startPoint, Point endPoint)
+        {
+            dc.DrawEllipse(this.HeadHandBrush, null, startPoint, HeadHandThickness, HeadHandThickness);
+            dc.DrawEllipse(this.HeadHandBrush, null, endPoint, HeadHandThickness, HeadHandThickness);
+            dc.DrawLine(this.SightLinePen, startPoint, endPoint);
+        }
+        */
 
     }
 }
