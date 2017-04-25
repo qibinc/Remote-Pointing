@@ -24,7 +24,7 @@ namespace Tsinghua.Kinect.RemotePoint
         private static Matrix Room2ObserveRotation;
         private static Matrix Room2ObserveTranslation;
 
-        private static Plate[] roomPlates = new Plate[5];
+        private static Plate[] roomPlates = new Plate[15];
 
         public static void SetCameraMatrix()
         {
@@ -47,7 +47,7 @@ namespace Tsinghua.Kinect.RemotePoint
 
             //  Kinect坐标系到房间坐标系
             Kinect2RoomRotation = Matrix.RotationMatrix(90, 0, 90);
-            Kinect2RoomTranslation = new SpacePoint(roomLength / 3, roomWidth / 2, 1300);
+            Kinect2RoomTranslation = new SpacePoint(2000, 2000, 1300);
 
             //  房间坐标系到观察坐标系
             Room2ObserveRotation = Matrix.RotationMatrix(-80, 0, 0) * Matrix.RotationMatrix(0, 0, 105);
@@ -56,24 +56,40 @@ namespace Tsinghua.Kinect.RemotePoint
 
         public static void SetPlates()
         {
+            roomPlates[0] = new Plate(new SpacePoint(0, 3000, 1000), new SpacePoint(0, 3300, 1000),
+                          new SpacePoint(0, 3300, 1300), new SpacePoint(0, 3000, 1300));
+
+            roomPlates[1] = new Plate(new SpacePoint(2000, 2000, roomHeight), new SpacePoint(2000, 2300, roomHeight),
+                          new SpacePoint(2300, 2300, roomHeight), new SpacePoint(2300, 2000, roomHeight));
+
+            roomPlates[2] = new Plate(new SpacePoint(1500, roomWidth, 1500), new SpacePoint(1500, roomWidth, 1800),
+                          new SpacePoint(1800, roomWidth, 1800), new SpacePoint(1800, roomWidth, 1500));
+
+            roomPlates[3] = new Plate(new SpacePoint(2000, 2000, 0), new SpacePoint(2000, 2300, 0),
+              new SpacePoint(2300, 2300, 0), new SpacePoint(2300, 2000, 0));
+
+            roomPlates[4] = new Plate(new SpacePoint(2000, 0, 2000), new SpacePoint(2000, 0, 2300),
+            new SpacePoint(2300, 0, 2300), new SpacePoint(2300, 0, 2000));
+
+
             //  正面
-            roomPlates[0] = new Plate(new SpacePoint(0, 0, 0), new SpacePoint(0, roomWidth, 0),
+            roomPlates[5] = new Plate(new SpacePoint(0, 0, 0), new SpacePoint(0, roomWidth, 0),
                                       new SpacePoint(0, roomWidth, roomHeight), new SpacePoint(0, 0, roomHeight));
 
             //  地板
-            roomPlates[1] = new Plate(new SpacePoint(0, 0, 0), new SpacePoint(0, roomWidth, 0),
+            roomPlates[6] = new Plate(new SpacePoint(0, 0, 0), new SpacePoint(0, roomWidth, 0),
                                       new SpacePoint(roomLength, roomWidth, 0), new SpacePoint(roomLength, 0, 0));
 
             //  左边墙
-            roomPlates[2] = new Plate(new SpacePoint(0, 0, 0), new SpacePoint(roomLength, 0, 0),
+            roomPlates[7] = new Plate(new SpacePoint(0, 0, 0), new SpacePoint(roomLength, 0, 0),
                                       new SpacePoint(roomLength, 0, roomHeight), new SpacePoint(0, 0, roomHeight));
 
             //  右边墙
-            roomPlates[3] = new Plate(new SpacePoint(0, roomWidth, 0), new SpacePoint(roomLength, roomWidth, 0),
+            roomPlates[8] = new Plate(new SpacePoint(0, roomWidth, 0), new SpacePoint(roomLength, roomWidth, 0),
                                       new SpacePoint(roomLength, roomWidth, roomHeight), new SpacePoint(0, roomWidth, roomHeight));
 
             //  天花板
-            roomPlates[4] = new Plate(new SpacePoint(0, 0, roomHeight), new SpacePoint(0, roomWidth, roomHeight),
+            roomPlates[9] = new Plate(new SpacePoint(0, 0, roomHeight), new SpacePoint(0, roomWidth, roomHeight),
                                       new SpacePoint(roomLength, roomWidth, roomHeight), new SpacePoint(roomLength, 0, roomHeight));
 
         }
