@@ -90,6 +90,20 @@ namespace Tsinghua.Kinect.RemotePoint
         /// </summary>
         public void AnalyzeHeadAndHands()
         {
+            if (skeleton.Joints[JointType.HandLeft].TrackingState == JointTrackingState.Tracked)
+            {
+                //System.Diagnostics.Debug.WriteLine(RoomSetting.CameraPointToRoomPoint(this.painter.SkeletonPointToCameraPoint(skeleton.Joints[JointType.HandLeft].Position)).Z);
+
+                if (RoomSetting.CameraPointToRoomPoint(this.painter.SkeletonPointToCameraPoint(skeleton.Joints[JointType.HandLeft].Position)).Z > 1200)
+                {
+                    RoomSetting.move = true;
+                }
+                else
+                {
+                    RoomSetting.move = false;
+                }
+            }
+
             // If we can't find either head or right hand, exit
             if (skeleton.Joints[JointType.Head].TrackingState == JointTrackingState.NotTracked ||
                 skeleton.Joints[JointType.HandRight].TrackingState == JointTrackingState.NotTracked)

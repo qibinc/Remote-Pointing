@@ -56,8 +56,8 @@ namespace Tsinghua.Kinect.RemotePoint
 
         public static void SetPlates()
         {
-            roomPlates[0] = new Plate(new SpacePoint(0, 3000, 1000), new SpacePoint(0, 3300, 1000),
-                          new SpacePoint(0, 3300, 1300), new SpacePoint(0, 3000, 1300));
+            roomPlates[0] = new Plate(new SpacePoint(0, 3000, 1000), new SpacePoint(0, 3210, 1000),
+                          new SpacePoint(0, 3210, 1297), new SpacePoint(0, 3000, 1297));
 
             roomPlates[1] = new Plate(new SpacePoint(2000, 2000, roomHeight), new SpacePoint(2000, 2300, roomHeight),
                           new SpacePoint(2300, 2300, roomHeight), new SpacePoint(2300, 2000, roomHeight));
@@ -91,6 +91,10 @@ namespace Tsinghua.Kinect.RemotePoint
             //  天花板
             roomPlates[9] = new Plate(new SpacePoint(0, 0, roomHeight), new SpacePoint(0, roomWidth, roomHeight),
                                       new SpacePoint(roomLength, roomWidth, roomHeight), new SpacePoint(roomLength, 0, roomHeight));
+
+            roomPlates[10] = new Plate(new SpacePoint(0, 1000, 2300), new SpacePoint(0, 1500, 2300),
+                          new SpacePoint(0, 1500, 2800), new SpacePoint(0, 1000, 2800));
+
 
         }
 
@@ -138,6 +142,10 @@ namespace Tsinghua.Kinect.RemotePoint
             return RoomPointToObservePoint(CameraPointToRoomPoint(cameraPoint));
         }
 
+        public static bool move = false;
+
+        private static PointFiltering intersectionFilter = new PointFiltering(new MedianFilter(3), new MedianFilter(3), new MedianFilter(3));
+
         /// <summary>
         /// Fine the intersection on the room's walls
         /// </summary>
@@ -159,7 +167,29 @@ namespace Tsinghua.Kinect.RemotePoint
 
                     if (t > 0 && plate.InsidePlate(intersection))
                     {
+                        intersectionFilter.SetValue(intersection);
+
+                        intersection = intersectionFilter.GetValue();
+
                         plate.Active = true;
+
+                        if (plate == roomPlates[0])
+                        {
+                            if (move == true)
+                            {
+                                SpacePoint translation = intersection - 0.5 * (plate.A + plate.C);
+                                plate.A += translation;
+                                plate.B += translation;
+                                plate.C += translation;
+                                plate.D += translation;
+                                plate.Holding = true;
+
+                            }
+                            else
+                            {
+                                plate.Holding = false;
+                            }
+                        }
 
                         return intersection;
                     }
@@ -190,7 +220,13 @@ namespace Tsinghua.Kinect.RemotePoint
                 {
                     if (!plate.Active)
                     {
-                        PaintPlate(dc, plate, InactivePlatePen);
+                        if (plate ==roomPlates[10])
+                            PaintPlate(dc, plate, new Pen(Brushes.Yellow, 3));
+                        else
+                        if (plate == roomPlates[0])
+                            PaintPlate(dc, plate, new Pen(Brushes.Green, 3));
+                        else
+                            PaintPlate(dc, plate, InactivePlatePen);
                     }
                 }
 
